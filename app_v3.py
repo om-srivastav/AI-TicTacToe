@@ -1,3 +1,4 @@
+from operator import index
 import time
 import streamlit as st
 
@@ -71,8 +72,6 @@ if "ai_score" not in st.session_state:
 
 if "draw_score" not in st.session_state:
     st.session_state.draw_score = 0
-if "auto_play" not in st.session_state:
-    st.session_state.auto_play = False
 if "score_updated" not in st.session_state:
     st.session_state.score_updated = False
 
@@ -251,141 +250,30 @@ def ai_move():
         return
 
     st.session_state.turn = PLAYER_X
-def ai_vs_ai_move():
 
-    if st.session_state.game_over:
-        return
+    # --------------------
+# HUMAN vs AI
+# --------------------
 
-    move = ask_gemini(st.session_state.board)
+if st.session_state.mode == "Human vs AI":
 
-    if move is None:
-        return
+    human_move(index)
 
-    make_move(
-        st.session_state.board,
-        move,
-        st.session_state.turn,
-    )
+    if not st.session_state.game_over:
 
-    winner = check_winner(st.session_state.board)
+        ai_move()
 
-    if winner:
+    st.rerun()
 
-        st.session_state.winner = winner
-        st.session_state.game_over = True
-        return
+# --------------------
+# HUMAN vs HUMAN
+# --------------------
 
-    if check_draw(st.session_state.board):
+else:
 
-        st.session_state.winner = "Draw"
-        st.session_state.game_over = True
-        return
+    ...
 
-    if st.session_state.turn == PLAYER_X:
-        st.session_state.turn = PLAYER_O
-    else:
-        st.session_state.turn = PLAYER_X
-    # -------------------------------
-# BOARD UI
 # -------------------------------
-
-st.subheader("🎯 Battle Arena")
-
-for row in range(3):
-
-    cols = st.columns(3)
-
-    for col in range(3):
-
-        index = row * 3 + col
-
-        value = st.session_state.board[index]
-
-        if value == "":
-            value = "⬜"
-
-        with cols[col]:
-
-            if st.button(
-
-                value,
-
-                key=f"cell_{index}",
-
-                use_container_width=True,
-
-                disabled=(
-                    st.session_state.game_over
-                    or (
-                        st.session_state.mode == "Human vs AI"
-                        and st.session_state.turn == PLAYER_O
-                    )
-                ),
-            ):
-
-                # --------------------
-                # HUMAN vs AI
-                # --------------------
-
-                if st.session_state.mode == "Human vs AI":
-
-                    human_move(index)
-
-                    if not st.session_state.game_over:
-
-                        ai_move()
-
-                    st.rerun()
-
-                # --------------------
-                # HUMAN vs HUMAN
-                # --------------------
-
-                else:
-
-                    if make_move(
-
-                        st.session_state.board,
-
-                        index,
-
-                        st.session_state.turn,
-
-                    ):
-
-                        winner = check_winner(
-                            st.session_state.board
-                        )
-
-                        if winner:
-
-                            st.session_state.winner = winner
-
-                            st.session_state.game_over = True
-
-                        elif check_draw(
-                            st.session_state.board
-                        ):
-
-                            st.session_state.winner = "Draw"
-
-                            st.session_state.game_over = True
-
-                        else:
-
-                            if (
-                                st.session_state.turn
-                                == PLAYER_X
-                            ):
-
-                                st.session_state.turn = PLAYER_O
-
-                            else:
-
-                                st.session_state.turn = PLAYER_X
-
-                        st.rerun()
-                    # -------------------------------
 # AI vs AI ENGINE
 # -------------------------------
 
@@ -496,7 +384,6 @@ with st.sidebar:
     [
         "Human vs AI",
         "Human vs Human",
-        "AI vs AI",
     ]
 )
 
@@ -519,14 +406,7 @@ with st.sidebar:
     st.session_state.board.count(""),
 
 )
-
-if st.session_state.mode == "AI vs AI":
-
-    st.session_state.auto_play = st.toggle(
-        "▶ Auto Play",
-        value=st.session_state.auto_play,
-    )
-
+    
 st.divider()
 
 st.success("AI Model")
