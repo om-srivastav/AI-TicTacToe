@@ -1,4 +1,3 @@
-from operator import index
 import time
 import streamlit as st
 
@@ -151,11 +150,10 @@ def human_move(index):
         return
 
     make_move(
-        st.session_state.board,
-        index,
-        PLAYER_X,
-    )
-
+    st.session_state.board,
+    index,
+    st.session_state.turn,
+)
     winner = check_winner(
         st.session_state.board
     )
@@ -178,8 +176,8 @@ def human_move(index):
 
         return
 
-    st.session_state.turn = PLAYER_O
-
+    if st.session_state.mode == "Human vs AI":
+     st.session_state.turn = PLAYER_O
 
 # -------------------------------
 # AI MOVE
@@ -251,96 +249,126 @@ def ai_move():
 
     st.session_state.turn = PLAYER_X
 
-    # --------------------
-# HUMAN vs AI
-# --------------------
-
-if st.session_state.mode == "Human vs AI":
-
-    human_move(index)
-
-    if not st.session_state.game_over:
-
-        ai_move()
-
-    st.rerun()
-
-# --------------------
-# HUMAN vs HUMAN
-# --------------------
-
-else:
-
-    ...
-
 # -------------------------------
-# AI vs AI ENGINE
+# BOARD UI
 # -------------------------------
 
-if (
-    st.session_state.mode == "AI vs AI"
-    and st.session_state.auto_play
-    and not st.session_state.game_over
-):
+st.subheader("🎯 Battle Arena")
 
-    time.sleep(0.8)
+for row in range(3):
 
+    cols = st.columns(3)
 
-    st.rerun()
-                        # -------------------------------
+    for col in range(3):
+
+        index = row * 3 + col
+
+        value = st.session_state.board[index]
+
+        if value == "":
+            value = "⬜"
+
+        with cols[col]:
+
+            if st.button(
+                value,
+                key=f"cell_{index}",
+                use_container_width=True,
+                disabled=(
+                    st.session_state.game_over
+                    or (
+                        st.session_state.mode == "Human vs AI"
+                        and st.session_state.turn == PLAYER_O
+                    )
+                ),
+            ):
+
+                # --------------------
+                # HUMAN vs AI
+                # --------------------
+
+                if st.session_state.mode == "Human vs AI":
+
+                    human_move(index)
+
+                    if not st.session_state.game_over:
+
+                        ai_move()
+
+                    st.rerun()
+
+                # --------------------
+                # HUMAN vs HUMAN
+                # --------------------
+
+                else:
+
+                    if make_move(
+                        st.session_state.board,
+                        index,
+                        st.session_state.turn,
+                    ):
+
+                        winner = check_winner(
+                            st.session_state.board
+                        )
+
+                        if winner:
+
+                            st.session_state.winner = winner
+                            st.session_state.game_over = True
+
+                        elif check_draw(
+                            st.session_state.board
+                        ):
+
+                            st.session_state.winner = "Draw"
+                            st.session_state.game_over = True
+
+                        else:
+
+                            if st.session_state.turn == PLAYER_X:
+
+                                st.session_state.turn = PLAYER_O
+
+                            else:
+
+                                st.session_state.turn = PLAYER_X
+
+                        st.rerun()
+
+# -------------------------------
 # RESULT
 # -------------------------------
-
-st.divider()
-
 if st.session_state.game_over:
 
-    if not st.session_state.score_updated:
-
-        if st.session_state.winner == PLAYER_X:
-
-            st.session_state.player_score += 1
-
-        elif st.session_state.winner == PLAYER_O:
-
-            st.session_state.ai_score += 1
-
-        else:
-
-            st.session_state.draw_score += 1
-
-        st.session_state.score_updated = True
-
-    if st.session_state.winner == PLAYER_X:
-
-        st.balloons()
-        st.success("🎉 You Won!")
-
-    elif st.session_state.winner == PLAYER_O:
-
-        st.error("🤖 Gemini Won!")
-
-    else:
-
-        st.info("🤝 Match Draw!")
-
-else:
+    st.subheader("🏆 Game Over")
 
     if st.session_state.mode == "Human vs AI":
 
-        if st.session_state.turn == PLAYER_X:
+        if st.session_state.winner == PLAYER_X:
 
-            st.success("🟢 Your Turn")
+            st.balloons()
+
+            st.success("🎉 You Won!")
+
+        elif st.session_state.winner == PLAYER_O:
+
+            st.error("🤖 Gemini Won!")
 
         else:
 
-           st.warning("🤖 Gemini is Planning...")
+            st.info("🤝 Match Draw!")
 
     else:
 
-        st.info(
-            f"Current Turn : {st.session_state.turn}"
-        )
+        if st.session_state.winner == "Draw":
+
+            st.info("🤝 Match Draw!")
+
+        else:
+
+            st.success(f"🏆 Player {st.session_state.winner} Won!")
 
 # -------------------------------
 # RESET
@@ -378,44 +406,42 @@ with st.sidebar:
 
     st.header("⚙ Game Settings")
 
-    st.session_state.mode = st.selectbox(
-    "🎮 Select Game Mode",
-    [
-        "Human vs AI",
-        "Human vs Human",
-    ]
-)
+    selected_mode = st.selectbox(
+        "🎮 Select Game Mode",
+        [
+            "Human vs AI",
+            "Human vs Human",
+        ],
+        index=0 if st.session_state.mode == "Human vs AI" else 1,
+    )
+
+    if selected_mode != st.session_state.mode:
+
+        st.session_state.mode = selected_mode
+
+        reset_game_state()
+
+        st.rerun()
 
     st.divider()
-    
-
 
     st.metric(
-
         "Current Turn",
-
         st.session_state.turn,
-
     )
 
     st.metric(
+        "Empty Cells",
+        st.session_state.board.count(""),
+    )
 
-    "Empty Cells",
+    st.divider()
 
-    st.session_state.board.count(""),
+    st.success("AI Model")
+    st.write("✅ Gemini 2.5 Flash")
 
-)
-    
-st.divider()
+    st.success("Framework")
+    st.write("✅ Streamlit")
 
-st.success("AI Model")
-
-st.write("✅ Gemini 2.5 Flash")
-
-st.success("Framework")
-
-st.write("✅ Streamlit")
-
-st.success("Language")
-
-st.write("✅ Python")
+    st.success("Language")
+    st.write("✅ Python")
