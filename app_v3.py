@@ -285,7 +285,6 @@ if (
 
     time.sleep(0.8)
 
-    ai_vs_ai_move()
 
     st.rerun()
                         # -------------------------------
